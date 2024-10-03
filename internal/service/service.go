@@ -2,40 +2,62 @@ package service
 
 import (
 	"context"
+	"distributed-go/services/registry"
 	"fmt"
 	"log"
 	"net/http"
 )
 
-type Service interface {
-    Name() string
-    URL() string
-    Handler() http.Handler
+type service interface {
+	Name() string
+	URL() string
+	Handler() http.Handler
 }
 
-func Run(ctx context.Context, service Service) context.Context {
-    ctx = startService(ctx, service)
+const SHOULD_REGISTER = "SHOULD_REGISTER"
 
-    return ctx;
+func Run(ctx context.Context, service service, register bool) context.Context {
+	ctx = context.WithValue(ctx, SHOULD_REGISTER, register)
+	ctx = startService(ctx, service)
+
+	if register {
+		err := registry.RegisterService(service.Name())
+
+		if err != nil {
+			log.Printf("%s service could not be registered.\nError: %s\n", service.Name(), err)
+		}
+	}
+
+	return ctx
 }
 
-func startService(ctx context.Context, service Service) context.Context {
-    ctx, cancel := context.WithCancel(ctx);
-    var server http.Server
-    server.Addr = service.URL()
-    server.Handler = service.Handler()
+func startService(ctx context.Context, service service) context.Context {
+	ctx, cancel := context.WithCancel(ctx)
+	var server http.Server
+	server.Addr = service.URL()
+	server.Handler = service.Handler()
 
-    go func() {
-        log.Println(server.ListenAndServe())
-        cancel()
-    }()
+	go func() {
+		log.Println(server.ListenAndServe())
+		val, ok := ctx.Value(SHOULD_REGISTER).(bool)
 
-    go func() {
-        fmt.Printf("%s service started. Enter any key to stop it\n", service.Name())
-        var s string;
-        fmt.Scanln(&s)
-        server.Shutdown(ctx)
-    }()
+		if ok && val {
+			err := registry.UnregisterService(service.Name())
 
-    return ctx;
+			if err != nil {
+				log.Printf("%s service could not be unregistered.\nError: %s\n", service.Name(), err)
+			}
+		}
+
+		cancel()
+	}()
+
+	go func() {
+		fmt.Printf("%s service started. Enter any key to stop it\n", service.Name())
+		var s string
+		fmt.Scanln(&s)
+		server.Shutdown(ctx)
+	}()
+
+	return ctx
 }

@@ -8,7 +8,7 @@ import (
 
 func main() {
     logService := logger.New(":3000")
-    ctx := service.Run(context.Background(), logService)
+    ctx := service.Run(context.Background(), logService, true)
 
     <-ctx.Done()
 }
