@@ -10,7 +10,7 @@ import (
 type logger string
 
 func (l logger) Write(data []byte) (int, error) {
-	file, err := os.OpenFile(string(l), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 6440);
+	file, err := os.OpenFile(string(l), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644);
 
     if err != nil {
         return 0, err
@@ -21,7 +21,23 @@ func (l logger) Write(data []byte) (int, error) {
     return file.Write(data)
 }
 
-func Prepare() http.Handler {
+type loggerService struct {
+    url string
+}
+
+func New(url string) *loggerService {
+    return &loggerService{url}
+}
+
+func (l *loggerService) URL() string {
+    return l.url
+}
+
+func (l *loggerService) Name() string {
+    return "Logger"
+}
+
+func (l *loggerService) Handler() http.Handler {
     clog := log.New(logger("./app.log"), "", log.LstdFlags);
     return register(clog)
 }

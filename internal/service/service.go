@@ -7,17 +7,23 @@ import (
 	"net/http"
 )
 
-func Run(ctx context.Context, name, url string, handler http.Handler) context.Context {
-    ctx = startService(ctx, name, url, handler)
+type Service interface {
+    Name() string
+    URL() string
+    Handler() http.Handler
+}
+
+func Run(ctx context.Context, service Service) context.Context {
+    ctx = startService(ctx, service)
 
     return ctx;
 }
 
-func startService(ctx context.Context, name, url string, handler http.Handler) context.Context {
+func startService(ctx context.Context, service Service) context.Context {
     ctx, cancel := context.WithCancel(ctx);
     var server http.Server
-    server.Addr = url
-    server.Handler = handler
+    server.Addr = service.URL()
+    server.Handler = service.Handler()
 
     go func() {
         log.Println(server.ListenAndServe())
@@ -25,7 +31,7 @@ func startService(ctx context.Context, name, url string, handler http.Handler) c
     }()
 
     go func() {
-        fmt.Printf("%s service started. Enter any key to stop it\n", name)
+        fmt.Printf("%s service started. Enter any key to stop it\n", service.Name())
         var s string;
         fmt.Scanln(&s)
         server.Shutdown(ctx)
