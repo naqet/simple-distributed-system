@@ -4,13 +4,22 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
 
-func RegisterService(name string) error {
-	client := http.Client{Timeout: 5 * time.Second}
-	res, err := client.Post(URL, "text/plain", strings.NewReader(name))
+func RegisterService(name, serviceUrl string) error {
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    formData := url.Values{}
+    formData.Set("name", name)
+    formData.Set("addr", serviceUrl)
+    req, err := http.NewRequestWithContext(ctx, http.MethodPost, URL + "/register", strings.NewReader(formData.Encode()))
+    req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+    res, err := http.DefaultClient.Do(req)
 
 	if err != nil {
 		return err
@@ -23,11 +32,16 @@ func RegisterService(name string) error {
 	return nil
 }
 
-func UnregisterService(name string) error {
+func UnregisterService(name, serviceUrl string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, URL, strings.NewReader(name))
+    formData := url.Values{}
+    formData.Set("name", name)
+    formData.Set("addr", serviceUrl)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, URL + "/unregister", strings.NewReader(formData.Encode()))
+    req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	if err != nil {
 		return err

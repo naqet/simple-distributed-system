@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type service interface {
@@ -21,7 +22,7 @@ func Run(ctx context.Context, service service, register bool) context.Context {
 	ctx = startService(ctx, service)
 
 	if register {
-		err := registry.RegisterService(service.Name())
+		err := registry.RegisterService(service.Name(), service.URL())
 
 		if err != nil {
 			log.Printf("%s service could not be registered.\nError: %s\n", service.Name(), err)
@@ -34,7 +35,7 @@ func Run(ctx context.Context, service service, register bool) context.Context {
 func startService(ctx context.Context, service service) context.Context {
 	ctx, cancel := context.WithCancel(ctx)
 	var server http.Server
-	server.Addr = service.URL()
+    server.Addr = strings.Split(service.URL(), "http://")[1]
 	server.Handler = service.Handler()
 
 	go func() {
@@ -42,7 +43,7 @@ func startService(ctx context.Context, service service) context.Context {
 		val, ok := ctx.Value(SHOULD_REGISTER).(bool)
 
 		if ok && val {
-			err := registry.UnregisterService(service.Name())
+			err := registry.UnregisterService(service.Name(), service.URL())
 
 			if err != nil {
 				log.Printf("%s service could not be unregistered.\nError: %s\n", service.Name(), err)
