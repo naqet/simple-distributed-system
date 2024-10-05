@@ -29,4 +29,16 @@ services:
       - REGISTRY_URL=http://registry:3000
     depends_on:
       - registry
+  portal:
+    build: 
+      context: .
+      dockerfile: ./cmd/portal/Dockerfile
+    ports: 
+      -  "8000:3000"
+    environment:
+      - PORT=3000
+      - REGISTRY_URL=http://registry:3000
+    depends_on:
+      - registry
+      - grades
 

@@ -8,6 +8,8 @@ import (
 	"os"
 )
 
+const LOGGER_SERVICE = "Logger"
+
 type logger string
 
 func (l logger) Write(data []byte) (int, error) {
@@ -35,7 +37,7 @@ func (l *loggerService) Port() string {
 }
 
 func (l *loggerService) Name() string {
-	return "Logger"
+	return LOGGER_SERVICE
 }
 
 func (l *loggerService) Handler() http.Handler {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"distributed-go/utils"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"sync"
@@ -22,7 +23,7 @@ func New() *registryService {
 }
 
 func (l *registryService) Port() string {
-    return utils.GetPort(DEFAULT_PORT)
+	return utils.GetPort(DEFAULT_PORT)
 }
 
 func (r *registryService) Name() string {
@@ -38,25 +39,25 @@ func (reg *registryService) register() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /register", func(w http.ResponseWriter, r *http.Request) {
-        name := r.FormValue("name")
-        port := r.FormValue("port")
+		name := r.FormValue("name")
+		port := r.FormValue("port")
 
 		if len(name) == 0 || len(port) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-        host, _, err := net.SplitHostPort(r.RemoteAddr)
+		host, _, err := net.SplitHostPort(r.RemoteAddr)
 
-        if err != nil {
+		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
-        }
-        serviceUrl := "http://" + host + ":" + port
+		}
+		serviceUrl := "http://" + host + ":" + port
 
 		reg.mu.Lock()
 		hosts, ok := reg.registry[string(name)]
-        reg.mu.Unlock()
+		reg.mu.Unlock()
 		if !ok {
 			reg.registry[string(name)] = []string{serviceUrl}
 			log.Printf("Registered new service: %s at %s", string(name), serviceUrl)
@@ -85,8 +86,8 @@ func (reg *registryService) register() http.Handler {
 	})
 
 	mux.HandleFunc("POST /unregister", func(w http.ResponseWriter, r *http.Request) {
-        name := r.FormValue("name")
-        port := r.FormValue("port")
+		name := r.FormValue("name")
+		port := r.FormValue("port")
 
 		if len(name) == 0 || len(port) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
@@ -95,7 +96,7 @@ func (reg *registryService) register() http.Handler {
 
 		reg.mu.Lock()
 		hosts, ok := reg.registry[string(name)]
-        reg.mu.Unlock()
+		reg.mu.Unlock()
 		if !ok {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Service is not registered"))
@@ -116,10 +117,32 @@ func (reg *registryService) register() http.Handler {
 			return
 		}
 
-        reg.mu.RLock()
+		reg.mu.RLock()
 		reg.registry[string(name)] = append(hosts[:idx], hosts[idx+1:]...)
-        reg.mu.RUnlock()
+		reg.mu.RUnlock()
 		log.Printf("Unregistered service: %s at %s", string(name), port)
+	})
+
+	mux.HandleFunc("/get-provider", func(w http.ResponseWriter, r *http.Request) {
+		name := r.URL.Query().Get("name")
+
+		if len(name) == 0 {
+			log.Println("Name has not been provided.")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		reg.mu.Lock()
+        defer reg.mu.Unlock()
+
+		services, ok := reg.registry[name]
+
+		if !ok {
+			log.Println("Service not registred.")
+			w.WriteHeader(http.StatusBadRequest)
+            return
+		}
+		w.Write([]byte(services[rand.Intn(len(services))]))
+		return
 	})
 
 	return mux
@@ -136,7 +159,7 @@ func (r *registryService) checkHealth() {
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 					defer cancel()
 
-					req, err := http.NewRequestWithContext(ctx, http.MethodGet, host+ "/health", nil)
+					req, err := http.NewRequestWithContext(ctx, http.MethodGet, host+"/health", nil)
 
 					if err != nil {
 						log.Printf("Request creation for %s service at %s failed.\n", name, host)
@@ -147,7 +170,15 @@ func (r *registryService) checkHealth() {
 
 					if err != nil || res.StatusCode != http.StatusOK {
 						log.Printf("%s service at %s is not reachable. Updating registry.\n", name, host)
+						r.mu.Lock()
+						if len(r.registry[name]) == 1 {
+							delete(r.registry, name)
+							r.mu.Unlock()
+							return
+						}
+
 						r.registry[name] = append(hosts[:i], hosts[i+1:]...)
+						r.mu.Unlock()
 					}
 				}
 			}()

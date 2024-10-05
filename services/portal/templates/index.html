@@ -1,0 +1,38 @@
+<html>
+
+<head>
+    <title>Grades App</title>
+    <style>
+        table,
+        th,
+        td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Grades book</h1>
+    {{ if eq (len .) 0 }}
+    <p>No students to show</p>
+    {{ else }}
+    <table>
+        <thead>
+            <th>Name</th>
+            <th>Average [%]</th>
+        </thead>
+        <tbody>
+            {{ range $item := . }}
+            <tr>
+                <td><a href="/student/{{ $item.Name }}">{{ $item.Name }}</a></td>
+                <td>{{ $item.GetAverage }}</td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+    {{ end }}
+</body>
+
+</html>

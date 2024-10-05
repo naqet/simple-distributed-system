@@ -1,0 +1,66 @@
+<html>
+
+<head>
+    <title>Grades App</title>
+    <style>
+        table,
+        th,
+        td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 0.5rem;
+        }
+
+        label {
+            display: grid;
+        }
+
+        form {
+            margin-block: auto;
+            max-width: 500px;
+        }
+
+        fieldset {
+            display: grid;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Grades book</h1>
+    <table>
+        <thead>
+            <th>Activity</th>
+            <th>Score</th>
+        </thead>
+        <tbody>
+            {{ range .Grades }}
+            <tr>
+                <td>{{ .Activity }}</td>
+                <td>{{ .Score }}</td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+    <form action="/grade" method="post">
+        <fieldset>
+            <legend>Add grade</legend>
+            <label>
+                Activity
+                <select name="activity">
+                    <option>Homework</option>
+                    <option>Test</option>
+                </select>
+            </label>
+            <label>
+                Score
+                <input type="number" min="0" max="100" name="score"></input>
+            </label>
+            <input name="name" value="{{ .Name }}" type="hidden"></input>
+            <button>Submit</button>
+        </fieldset>
+    </form>
+</body>
+
+</html>

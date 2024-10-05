@@ -2,50 +2,56 @@ package grades
 
 import (
 	"distributed-go/utils"
+	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 )
 
-type student struct {
-	name   string
-	grades []grade
-}
+const GRADES_SERVICE = "Grades"
 
-func (s *student) getAverage() int {
+type Student struct {
+	Name   string  `json:"name"`
+	Grades []grade `json:"grades"`
+}
+func (s Student) GetAverage() int {
+    if len(s.Grades) == 0 {
+        return 0
+    }
 	average := 0
-	for _, grade := range s.grades {
-		average += grade.score
+	for _, grade := range s.Grades {
+		average += grade.Score
 	}
 
-	average = average / len(s.grades)
+	average = average / len(s.Grades)
 
 	return average
 }
 
 type grade struct {
-	activity string
-	score    int
+	Activity string `json:"activity"`
+	Score    int    `json:"score"`
 }
 
 type gradesService struct {
 	port     string
-	students []student
+	students []Student
 }
 
 func New(port string) *gradesService {
-	return &gradesService{port, []student{
-		{name: "John Smith", grades: []grade{}},
-		{name: "Katie Jerry", grades: []grade{}},
-		{name: "Jacob Holden", grades: []grade{}},
+	return &gradesService{port, []Student{
+		{Name: "John Smith", Grades: []grade{}},
+		{Name: "Katie Jerry", Grades: []grade{}},
+		{Name: "Jacob Holden", Grades: []grade{}},
 	}}
 }
 
 func (g *gradesService) Name() string {
-	return "Grades"
+	return GRADES_SERVICE
 }
 
 func (g *gradesService) Port() string {
-    return utils.GetPort(g.port)
+	return utils.GetPort(g.port)
 }
 
 func (g *gradesService) Handler() http.Handler {
@@ -68,7 +74,7 @@ func (g *gradesService) register() http.Handler {
 
 		idx := -1
 		for i, student := range g.students {
-			if student.name == name {
+			if student.Name == name {
 				idx = i
 				break
 			}
@@ -81,8 +87,8 @@ func (g *gradesService) register() http.Handler {
 		}
 
 		found := false
-		for _, grade := range g.students[idx].grades {
-			if grade.activity == activity {
+		for _, grade := range g.students[idx].Grades {
+			if grade.Activity == activity {
 				found = true
 				break
 			}
@@ -102,12 +108,50 @@ func (g *gradesService) register() http.Handler {
 			return
 		}
 
-		g.students[idx].grades = append(g.students[idx].grades, grade{activity, scoreInt})
+		g.students[idx].Grades = append(g.students[idx].Grades, grade{activity, scoreInt})
 	})
 
-    mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("Healthy"))
-    })
+	mux.HandleFunc("/students", func(w http.ResponseWriter, r *http.Request) {
+        data, err := json.Marshal(g.students)
+
+        if err != nil {
+            log.Println("Problem with marshaling students", err)
+            w.WriteHeader(http.StatusInternalServerError)
+            return
+        }
+        w.Header().Add("Content-Type", "application/json")
+        w.Write(data)
+	})
+
+	mux.HandleFunc("/students/{name}", func(w http.ResponseWriter, r *http.Request) {
+        name := r.PathValue("name")
+        idx := -1;
+        for i, student := range g.students {
+            if student.Name == name {
+                idx = i;
+                break;
+            }
+        }
+
+        if idx == -1 {
+            w.WriteHeader(http.StatusBadRequest)
+            return
+        }
+
+        data, err := json.Marshal(g.students[idx])
+
+        if err != nil {
+            log.Println("Problem with marshaling student", err)
+            w.WriteHeader(http.StatusInternalServerError)
+            return
+        }
+        w.Header().Add("Content-Type", "application/json")
+        w.Write(data)
+	})
+
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Healthy"))
+	})
 
 	return mux
 }
