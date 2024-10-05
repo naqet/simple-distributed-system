@@ -1,21 +1,13 @@
 package utils
 
-import (
-	"net"
-)
+import "os"
 
-func GetServiceURL(port string) (string, error) {
-    conn, err := net.Dial("udp", "0.0.0.0:8000")
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close()
+func GetPort(defaultPort string) string {
+    port := os.Getenv("PORT")
 
-	ip, _, err := net.SplitHostPort(conn.LocalAddr().String())
-
-    if err != nil {
-        return "", err
+    if port != "" {
+        return port
     }
 
-    return "http://" + ip + ":" + port, nil
+    return defaultPort
 }

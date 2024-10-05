@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-    logService := logger.New("3000")
+    logService := logger.New("3001")
     ctx := service.Run(context.Background(), logService, true)
 
     <-ctx.Done()

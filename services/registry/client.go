@@ -9,14 +9,17 @@ import (
 	"time"
 )
 
-func RegisterService(name, serviceUrl string) error {
+func RegisterService(name, port string) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
     formData := url.Values{}
     formData.Set("name", name)
-    formData.Set("addr", serviceUrl)
-    req, err := http.NewRequestWithContext(ctx, http.MethodPost, URL + "/register", strings.NewReader(formData.Encode()))
+    formData.Set("port", port)
+
+    registryUrl := getRegistryURL()
+
+    req, err := http.NewRequestWithContext(ctx, http.MethodPost, registryUrl + "/register", strings.NewReader(formData.Encode()))
     req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
     res, err := http.DefaultClient.Do(req)
@@ -32,15 +35,17 @@ func RegisterService(name, serviceUrl string) error {
 	return nil
 }
 
-func UnregisterService(name, serviceUrl string) error {
+func UnregisterService(name, port string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
 
     formData := url.Values{}
     formData.Set("name", name)
-    formData.Set("addr", serviceUrl)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, URL + "/unregister", strings.NewReader(formData.Encode()))
+    formData.Set("port", port)
+
+    registryUrl := getRegistryURL()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, registryUrl + "/unregister", strings.NewReader(formData.Encode()))
     req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	if err != nil {

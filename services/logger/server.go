@@ -23,22 +23,15 @@ func (l logger) Write(data []byte) (int, error) {
 }
 
 type loggerService struct {
-	port string
+	defaultPort string
 }
 
-func New(port string) *loggerService {
-	return &loggerService{port}
+func New(defaultPort string) *loggerService {
+	return &loggerService{defaultPort}
 }
 
-func (l *loggerService) URL() string {
-	url, err := utils.GetServiceURL(l.port)
-
-	if err != nil {
-		log.Println("Service url could not be obtained", err)
-		return "http://localhost:" + l.port
-	}
-
-	return url
+func (l *loggerService) Port() string {
+    return utils.GetPort(l.defaultPort)
 }
 
 func (l *loggerService) Name() string {

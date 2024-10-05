@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-    registryService := registry.New(":3001")
+    registryService := registry.New()
     ctx := service.Run(context.Background(), registryService, false)
 
     <-ctx.Done()

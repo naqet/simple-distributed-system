@@ -1,0 +1,32 @@
+services:
+  registry:
+    build: 
+      context: .
+      dockerfile: ./cmd/registry/Dockerfile
+    ports: 
+      -  "3000:3000"
+    environment:
+      - PORT=3000
+  logger:
+    build: 
+      context: .
+      dockerfile: ./cmd/logger/Dockerfile
+    ports: 
+      -  "3001:3000"
+    environment:
+      - PORT=3000
+      - REGISTRY_URL=http://registry:3000
+    depends_on:
+      - registry
+  grades:
+    build: 
+      context: .
+      dockerfile: ./cmd/grades/Dockerfile
+    ports: 
+      -  "3002:3000"
+    environment:
+      - PORT=3000
+      - REGISTRY_URL=http://registry:3000
+    depends_on:
+      - registry
+
