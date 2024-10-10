@@ -86,20 +86,6 @@ func (g *gradesService) register() http.Handler {
 			return
 		}
 
-		found := false
-		for _, grade := range g.students[idx].Grades {
-			if grade.Activity == activity {
-				found = true
-				break
-			}
-		}
-
-		if found {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Activity with such name already exists in the student's grade book."))
-			return
-		}
-
 		scoreInt, err := strconv.Atoi(score)
 
 		if err != nil {
